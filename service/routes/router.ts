@@ -1,6 +1,7 @@
 import { Express, Request, Response, NextFunction } from 'express';
 import colors from 'colors';
 
+//as legacy
 import { showService } from '../controllers/indexCtrl';
 
 import { queryUser, queryUserByTag, saveUser, queryUserByWallet } from '../controllers/usersCtrl';
