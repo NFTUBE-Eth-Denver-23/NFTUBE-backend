@@ -11,7 +11,7 @@ const app = express();
 
 let port = 3001;
 let viewDir = '/views';
-if (process.env.ENV === 'prod' || process.env.ENV === 'beta') {
+if (process.env.ENV === 'beta') {
   port = 80;
   viewDir = '/../views';
 }
