@@ -19,7 +19,6 @@ const poolData = {
   ClientId: clientId
 };
 
-const userPool = new CognitoUserPool(poolData);
 
 // This verifier will trust both User Pools
 const idTokenVerifier = CognitoJwtVerifier.create([
@@ -48,39 +47,5 @@ const verifyJWTToken = async (accessToken: string, userId: string): Promise<bool
   }
 };
 
-// this is to assist testing Cognito authenticated endpoints
-const generateTestJWTToken = async (): Promise<any> => {
-  let authenticationData = {
-    Username: email,
-    Password: password
-  };
 
-  let authenticationDetails = new AuthenticationDetails(authenticationData);
-
-  let userData = {
-    Username: email,
-    Pool: userPool
-  };
-
-  let cognitoUser = new CognitoUser(userData);
-
-  const getTokenData = () => {
-    return new Promise((resolve, reject) => {
-      cognitoUser.authenticateUser(authenticationDetails, {
-        onSuccess: function (result) {
-          const sub = result.getIdToken().payload.sub;
-          const accessToken = result.getAccessToken().getJwtToken();
-          resolve({ jwtToken: accessToken, sub: sub });
-        },
-        onFailure: function (err) {
-          console.log(err);
-          reject(err);
-        }
-      });
-    });
-  };
-
-  return await getTokenData();
-};
-
-export { generateTestJWTToken, verifyJWTToken };
+export { verifyJWTToken };

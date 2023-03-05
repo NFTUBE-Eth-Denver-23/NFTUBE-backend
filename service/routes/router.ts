@@ -4,7 +4,6 @@ import colors from 'colors';
 import { showService } from '../controllers/indexCtrl';
 import { queryContents, addContent, deleteContent } from '../controllers/contentsCtrl';
 import { createAssets, createPreSignedURL, queryAssetsByNFTId, updateAsset } from '../controllers/assetsCtrl';
-import { queryUser, queryUserByTag, saveUser } from '../controllers/usersCtrl';
 import {
   queryRecentWalletByUserIdAndChain,
   queryWalletsByUserIdAndChain,
@@ -55,12 +54,6 @@ const initilizeRoutes = (app: Express): void => {
   app.route('/query_assets_by_nft_id/:nftId').get(queryAssetsByNFTId);
 
   app.route('/save_assets').post(createAssets);
-
-  app.route('/query_user_by_tag/:userTag').get(queryUserByTag);
-
-  app.route('/query_user/:userId').get(queryUser);
-
-  app.route('/save_user').post(saveUser).put(saveUser);
 
   app.route('/query_wallets_by_user_id_and_chain/:userId/:chain').get(queryWalletsByUserIdAndChain);
 
