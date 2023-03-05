@@ -7,9 +7,9 @@ export type walletValidationParam = {
 };
 export const walletValidator = (param: walletValidationParam) => {
   const { signature, address, chainId, value: userId } = param;
-
+  //unw
   const domain = {
-    name: 'Unic-Wallet',
+    name: 'NFTube-Wallet',
     version: '1',
     chainId
   };

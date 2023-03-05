@@ -11,7 +11,7 @@ AWS.config.update({
 
 const S3 = new AWS.S3();
 const ORIGINAL_ASSETS_BUCKET = 'original-assets';
-const COLLECTIONS_BUCKET = 'unic-collections';
+const COLLECTIONS_BUCKET = 'nftube-collections';
 const SIGNED_URL_EXPIRES_SEC = 60 * 15;
 
 const generatePreSingedURL = async (

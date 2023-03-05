@@ -17,7 +17,7 @@ export class Collection {
   createdAt!: number;
   updatedAt!: number;
   isLatest!: boolean;
-  isCreatedByUnic!: boolean;
+  isCreatedByNFTube!: boolean;
   shippingRequired!: boolean;
   ownerSignatureMintAllowed!: boolean;
   appId?: string;
@@ -45,7 +45,7 @@ export class Collection {
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       isLatest: this.isLatest,
-      isCreatedByUnic: this.isCreatedByUnic,
+      isCreatedByNFTube: this.isCreatedByNFTube,
       shippingRequired: this.shippingRequired,
       ownerSignatureMintAllowed: this.ownerSignatureMintAllowed,
       appId: this.appId

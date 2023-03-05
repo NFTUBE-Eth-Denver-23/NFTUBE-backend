@@ -153,7 +153,7 @@ const queryCollections = async (req: Request, res: Response) => {
     }
   }
 
-  const isCreatedByUnic = queryParams.isCreatedByUnic;
+  const isCreatedByNFTube = queryParams.isCreatedByNFTube;
   const category = queryParams.category;
   const creatorAddress = queryParams.creatorAddress;
   const filterTestOverride = queryParams.filterTestOverride;
@@ -199,9 +199,9 @@ const queryCollections = async (req: Request, res: Response) => {
       });
     }
 
-    if (isCreatedByUnic) {
+    if (isCreatedByNFTube) {
       results = results.filter((collection: Collection) => {
-        return collection.isCreatedByUnic;
+        return collection.isCreatedByNFTube;
       });
     }
 
