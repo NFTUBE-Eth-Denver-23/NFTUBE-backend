@@ -4,9 +4,15 @@ import {
   getMostRecentCollection,
   getCollectionsByCategory,
   getCollectionsByCreatorAddress,
-  getCollectionByAddress,
   putCollection,
-  scanTable
+  getCollectionByAddress,
+  scanTable,
+  getNFTsByCollectionId,
+  likeCollection,
+  unlikeCollection,
+  getUserLikedCollections,
+  getUserLikedCollection,
+  getWalletsByUserIdAndChain
 } from '../providers/ddbProvider';
 import { verifyJWTToken } from '../providers/cognitoProvider';
 import { validateAPIKey } from '../validators/apiKeyValidator';
@@ -14,6 +20,7 @@ import { accessTokenValidator } from '../validators/accessTokenValidator';
 import { Collection } from '../models/Collection';
 import _ from 'lodash';
 import logger from '../../logger';
+import { NFT } from '../models/NFT';
 
 const queryCollection = async (req: Request, res: Response) => {
   const collectionId = req.params.collectionId;
@@ -283,4 +290,237 @@ const createCollection = async (req: Request, res: Response) => {
   }
 };
 
-export { queryCollection, queryCollectionByAddress, queryCollectionsByAddresses, queryCollections, createCollection };
+const queryCollectionScanAndViewCount = async (req: Request, res: Response) => {
+  const collectionId = req.params.collectionId;
+
+  try {
+    const relevantNFTs = await getNFTsByCollectionId(collectionId);
+
+    let totalScanCount = 0,
+      totalViewCount = 0;
+
+    relevantNFTs.forEach((nft: NFT) => {
+      totalScanCount = totalScanCount + (nft.scanCount || 0);
+      totalViewCount = totalViewCount + (nft.viewCount || 0);
+    });
+
+    return res.json({
+      success: true,
+      data: { totalScanCount: totalScanCount, totalViewCount: totalViewCount }
+    });
+  } catch (err: any) {
+    logger.error(`Error occured during queryCollection: ${err.message}`);
+    logger.error(err.stack);
+
+    return res.json({
+      success: false,
+      message: `Error occured during queryCollection: ${err.message}`
+    });
+  }
+};
+
+const collectionLikeAction = async (req: Request, res: Response) => {
+  const collectionId = req.params.collectionId;
+  const userId = req.params.userId;
+  const apiKey = req.query.API_KEY as string;
+  const { device } = req.body;
+  let accessToken = accessTokenValidator(req.headers);
+
+  if (!validateAPIKey(apiKey)) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Invalid API Key.`
+    });
+  }
+
+  if (!collectionId || !userId) {
+    return res.json({
+      success: false,
+      message: `Validation Error: collectionId and userId must be present.`
+    });
+  }
+
+  if (!accessToken) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Access token should be provided.`
+    });
+  }
+  const validJWTToken = await verifyJWTToken(accessToken, userId);
+
+  if (!validJWTToken) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Invalid JWT Token.`
+    });
+  }
+
+  try {
+    await likeCollection(collectionId, userId);
+
+    return res.json({
+      success: true
+    });
+  } catch (err: any) {
+    logger.error(`Error occured during collectionLikeAction for ${collectionId} / ${userId}: ${err.message}`);
+    logger.error(err.stack);
+
+    return res.json({
+      success: false,
+      message: `Error occured during collectionLikeAction: ${err.message}`
+    });
+  }
+};
+
+const collectionUnlikeAction = async (req: Request, res: Response) => {
+  const collectionId = req.params.collectionId;
+  const userId = req.params.userId;
+  const apiKey = req.query.API_KEY as string;
+  const { device } = req.body;
+  let accessToken = accessTokenValidator(req.headers);
+
+  if (!validateAPIKey(apiKey)) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Invalid API Key.`
+    });
+  }
+
+  if (!collectionId || !userId) {
+    return res.json({
+      success: false,
+      message: `Validation Error: collectionId and userId must be present.`
+    });
+  }
+
+  if (!accessToken) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Access token should be provided.`
+    });
+  }
+  const validJWTToken = await verifyJWTToken(accessToken, userId);
+
+  if (!validJWTToken) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Invalid JWT Token.`
+    });
+  }
+
+  try {
+    await unlikeCollection(collectionId, userId);
+
+    return res.json({
+      success: true
+    });
+  } catch (err: any) {
+    logger.error(`Error occured during collectionUnlikeAction for ${collectionId} / ${userId}: ${err.message}`);
+    logger.error(err.stack);
+
+    return res.json({
+      success: false,
+      message: `Error occured during collectionUnlikeAction: ${err.message}`
+    });
+  }
+};
+
+const queryCollectionUserRelation = async (req: Request, res: Response) => {
+  const collectionId = req.params.collectionId;
+  const userId = req.params.userId;
+  const apiKey = req.query.API_KEY as string;
+
+  if (!validateAPIKey(apiKey)) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Invalid API Key.`
+    });
+  }
+
+  if (!collectionId || !userId) {
+    return res.json({
+      success: false,
+      message: `Validation Error: collectionId and userId must be present.`
+    });
+  }
+
+  try {
+    const relation = { isLiked: false };
+    const likedCollection = await getUserLikedCollection(collectionId, userId);
+
+    if (likedCollection && likedCollection.collectionId && likedCollection.userId) {
+      relation.isLiked = true;
+    }
+
+    return res.json({
+      success: true,
+      data: relation
+    });
+  } catch (err: any) {
+    logger.error(`Error occured during queryNFTUserRelation for ${collectionId} / ${userId}: ${err.message}`);
+    logger.error(err.stack);
+
+    return res.json({
+      success: false,
+      message: `Error occured during queryNFTUserRelation: ${err.message}`
+    });
+  }
+};
+
+const queryUserLikedCollections = async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+  const chain = req.params.chain;
+  const apiKey = req.query.API_KEY as string;
+
+  if (!validateAPIKey(apiKey)) {
+    return res.json({
+      success: false,
+      message: `Validation Error: Invalid API Key.`
+    });
+  }
+
+  try {
+    const userLikedCollections = await getUserLikedCollections(userId);
+    let results: Collection[] = [];
+
+    results = await Promise.all(
+      userLikedCollections.map((record: any) => getMostRecentCollection(record.collectionId))
+    );
+
+    results = results.filter((collection: Collection) => {
+      return collection.isListed;
+    });
+
+    if (chain) {
+      results = results.filter((collection: Collection) => {
+        return collection.chain === chain;
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: results
+    });
+  } catch (err: any) {
+    logger.error(`Error occured during queryUserLikedCollections for ${userId}: ${err.message}`);
+    logger.error(err.stack);
+
+    return res.json({
+      success: false,
+      message: `Error occured during queryUserLikedCollections: ${err.message}`
+    });
+  }
+};
+
+export {
+  collectionLikeAction,
+  collectionUnlikeAction,
+  queryUserLikedCollections,
+  queryCollection,
+  queryCollectionByAddress,
+  queryCollectionsByAddresses,
+  queryCollections,
+  createCollection,
+  queryCollectionScanAndViewCount,
+  queryCollectionUserRelation
+};

@@ -7,12 +7,17 @@ import { String } from 'aws-sdk/clients/batch';
 import { ScanInput } from 'aws-sdk/clients/dynamodb';
 import { SuccessResponse } from '../interfaces/common';
 import { NFT } from '../models/NFT';
+import { Wallet } from '../models/Wallet';
+import { Asset } from '../models/Asset';
 
 let USERS_TABLE = 'usersTableBeta';
 let CONTENTS_TABLE = 'contentsTableBeta';
 let COLLECTIONS_TABLE = 'collectionsTableBeta';
 let NFTS_TABLE = 'nftsTableBeta';
 let ASSETS_TABLE = 'assetsTableBeta';
+let LIKED_NFTS_TABLE = 'userLikedNFTsBeta';
+let LIKED_COLLECTIONS_TABLE = 'collectionsTableBeta';
+let WALLETS_TABLE = 'walletsTableBeta';
 
 const ADDRESS_INDEX = 'address-index';
 const CATEGORY_INDEX = 'category-index';
@@ -22,6 +27,9 @@ const COLLECTION_ADDRESS_INDEX = 'collectionAddress-index';
 const DOT_ID_INDEX = 'dotId-index';
 const COLLECTION_ADDRESS_TOKEN_ID_INDEX = 'collectionAddress-tokenId-index';
 const COLLECTION_ID_INDEX = 'collectionId-index';
+const USER_ID_CHAIN_INDEX = 'userId-chain-index';
+const NFT_ID_INDEX = 'nftId-index';
+
 AWS.config.update({
   accessKeyId: config.nftubeAccessKey,
   secretAccessKey: config.nftubeSecretKey,
@@ -331,6 +339,303 @@ const putNFT = async (nft: NFT): Promise<NFT> => {
 
   return nft;
 };
+const likeNFT = async (nftId: string, userId: string): Promise<SuccessResponse> => {
+  const params = {
+    TableName: LIKED_NFTS_TABLE,
+    Item: {
+      nftId: nftId,
+      userId: userId
+    }
+  };
+
+  await docClient
+    .put(params)
+    .promise()
+    .catch((e) => {
+      throw e;
+    });
+  return {
+    success: true
+  };
+};
+
+const unlikeNFT = async (nftId: string, userId: string): Promise<SuccessResponse> => {
+  const params = {
+    TableName: LIKED_NFTS_TABLE,
+    Key: {
+      nftId: nftId,
+      userId: userId
+    }
+  };
+
+  await docClient
+    .delete(params)
+    .promise()
+    .catch((e) => {
+      throw e;
+    });
+  return {
+    success: true
+  };
+};
+
+const getUserLikedNFT = async (nftId: string, userId: string): Promise<any> => {
+  const params = {
+    TableName: LIKED_NFTS_TABLE,
+    KeyConditionExpression: `nftId = :nftId and userId = :userId`,
+    ExpressionAttributeValues: {
+      ':nftId': nftId,
+      ':userId': userId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  return response.Items?.[0];
+};
+
+const getUserLikedNFTs = async (userId: string): Promise<any> => {
+  const params = {
+    TableName: LIKED_NFTS_TABLE,
+    IndexName: USER_ID_INDEX,
+    KeyConditionExpression: `userId = :userId`,
+    ExpressionAttributeValues: {
+      ':userId': userId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  return response.Items;
+};
+
+const likeCollection = async (collectionId: string, userId: string): Promise<SuccessResponse> => {
+  const params = {
+    TableName: LIKED_COLLECTIONS_TABLE,
+    Item: {
+      collectionId: collectionId,
+      userId: userId
+    }
+  };
+  await docClient
+    .put(params)
+    .promise()
+    .catch((e) => {
+      throw e;
+    });
+
+  return {
+    success: true
+  };
+};
+
+const unlikeCollection = async (collectionId: string, userId: string): Promise<SuccessResponse> => {
+  const params = {
+    TableName: LIKED_COLLECTIONS_TABLE,
+    Key: {
+      collectionId: collectionId,
+      userId: userId
+    }
+  };
+
+  await docClient
+    .delete(params)
+    .promise()
+    .catch((e) => {
+      throw e;
+    });
+
+  return {
+    success: true
+  };
+};
+
+const getUserLikedCollection = async (collectionId: string, userId: string): Promise<any> => {
+  const params = {
+    TableName: LIKED_COLLECTIONS_TABLE,
+    KeyConditionExpression: `collectionId = :collectionId and userId = :userId`,
+    ExpressionAttributeValues: {
+      ':collectionId': collectionId,
+      ':userId': userId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  return response.Items?.[0];
+};
+
+const getUserLikedCollections = async (userId: string): Promise<any> => {
+  const params = {
+    TableName: LIKED_COLLECTIONS_TABLE,
+    IndexName: USER_ID_INDEX,
+    KeyConditionExpression: `userId = :userId`,
+    ExpressionAttributeValues: {
+      ':userId': userId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  return response.Items;
+};
+const atomicIncrementNFTScanCount = async (nftId: string): Promise<void> => {
+  const params = {
+    TableName: NFTS_TABLE,
+    Key: {
+      nftId: nftId
+    },
+    UpdateExpression: 'set scanCount = scanCount + :val',
+    ExpressionAttributeValues: {
+      ':val': 1
+    },
+    ReturnValues: 'UPDATED_NEW'
+  };
+
+  await docClient.update(params).promise();
+};
+
+const atomicIncrementNFTViewCount = async (nftId: string): Promise<void> => {
+  const params = {
+    TableName: NFTS_TABLE,
+    Key: {
+      nftId: nftId
+    },
+    UpdateExpression: 'set viewCount = viewCount + :val',
+    ExpressionAttributeValues: {
+      ':val': 1
+    },
+    ReturnValues: 'UPDATED_NEW'
+  };
+
+  await docClient.update(params).promise();
+};
+
+const getWallet = async (address: string, chain: string): Promise<Wallet> => {
+  const params = {
+    TableName: WALLETS_TABLE,
+    KeyConditionExpression: `address = :address and chain = :chain`,
+    ExpressionAttributeValues: {
+      ':address': address,
+      ':chain': chain
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  const walletData = response.Items?.[0];
+
+  return new Wallet(walletData);
+};
+
+const getWalletsByUserId = async (userId: string): Promise<any> => {
+  const params = {
+    TableName: WALLETS_TABLE,
+    IndexName: USER_ID_INDEX,
+    KeyConditionExpression: `userId = :userId`,
+    ExpressionAttributeValues: {
+      ':userId': userId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+
+  return response.Items;
+};
+
+const getWalletsByUserIdAndChain = async (userId: string, chain: string): Promise<any> => {
+  const params = {
+    TableName: WALLETS_TABLE,
+    IndexName: USER_ID_CHAIN_INDEX,
+    KeyConditionExpression: `userId = :userId and chain = :chain`,
+    ExpressionAttributeValues: {
+      ':userId': userId,
+      ':chain': chain
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  return response.Items;
+};
+
+const putWallet = async (wallet: Wallet): Promise<Wallet> => {
+  const params = {
+    TableName: WALLETS_TABLE,
+    Item: wallet.makeObject()
+  };
+
+  await docClient.put(params).promise();
+
+  return wallet;
+};
+
+const getAsset = async (assetId: string): Promise<Asset> => {
+  const params = {
+    TableName: ASSETS_TABLE,
+    KeyConditionExpression: `assetId = :assetId`,
+    ExpressionAttributeValues: {
+      ':assetId': assetId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  const assetData = response.Items?.[0];
+
+  return new Asset(assetData);
+};
+
+const getAssetsByNFTId = async (nftId: string): Promise<any> => {
+  const params = {
+    TableName: ASSETS_TABLE,
+    IndexName: NFT_ID_INDEX,
+    KeyConditionExpression: `nftId = :nftId`,
+    ExpressionAttributeValues: {
+      ':nftId': nftId
+    }
+  };
+
+  const response = await docClient.query(params).promise();
+  return response.Items;
+};
+
+const putAsset = async (assetData: Asset): Promise<Asset> => {
+  const params = {
+    TableName: ASSETS_TABLE,
+    Item: assetData.makeObject()
+  };
+
+  await docClient.put(params).promise();
+
+  return assetData;
+};
+
+const updateAssetFields = async (assetId: string, items: any) => {
+  const itemKeys = Object.keys(items);
+  const params = {
+    TableName: ASSETS_TABLE,
+    Key: {
+      assetId: assetId
+    },
+    UpdateExpression: `SET ${itemKeys.map((k, index) => `#field${index} = :value${index}`).join(', ')}`,
+    ExpressionAttributeNames: itemKeys.reduce(
+      (accumulator, k, index) => ({ ...accumulator, [`#field${index}`]: k }),
+      {}
+    ),
+    ExpressionAttributeValues: itemKeys.reduce(
+      (accumulator, k, index) => ({ ...accumulator, [`:value${index}`]: items[k] }),
+      {}
+    ),
+    ReturnValues: 'UPDATED_NEW'
+    // Return the newly updated values
+  };
+  await docClient.update(params).promise();
+};
+
+const deleteAsset = async (assetId: string): Promise<void> => {
+  const params = {
+    TableName: ASSETS_TABLE,
+    Key: {
+      assetId: assetId
+    }
+  };
+
+  await docClient.delete(params).promise();
+};
 
 export {
   COLLECTIONS_TABLE,
@@ -354,5 +659,24 @@ export {
   getNFTbyDotId,
   getNFTsByCollectionId,
   getNFTbyCollectionAddressAndTokenId,
-  getNFTsByCollectionAddress
+  getNFTsByCollectionAddress,
+  likeNFT,
+  likeCollection,
+  unlikeNFT,
+  unlikeCollection,
+  getUserLikedNFT,
+  getUserLikedNFTs,
+  getUserLikedCollections,
+  getUserLikedCollection,
+  atomicIncrementNFTScanCount,
+  atomicIncrementNFTViewCount,
+  getWallet,
+  getWalletsByUserId,
+  getWalletsByUserIdAndChain,
+  putWallet,
+  getAsset,
+  getAssetsByNFTId,
+  putAsset,
+  deleteAsset,
+  updateAssetFields
 };

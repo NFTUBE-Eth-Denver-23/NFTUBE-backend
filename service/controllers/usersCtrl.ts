@@ -104,37 +104,6 @@ const saveUser = async (req: Request, res: Response) => {
     });
   }
 };
-const queryUserByWallet = async (req: Request, res: Response) => {
-  const address = req.params.address;
-  const chain = req.params.chain;
 
-  try {
-    // wallet logic comes here as below
-    // const wallet = await getWallet(address, chain);
-    const wallet = { userId: '123' };
 
-    if (!wallet || !wallet.userId) {
-      return res.json({
-        success: false,
-        message: `Validation Error: given wallet does not exist or userId does not exist in wallet data.`
-      });
-    }
-
-    const result = await getUser(wallet.userId);
-
-    return res.json({
-      success: true,
-      data: result
-    });
-  } catch (err: any) {
-    logger.error(`Error occured during queryUserByWallet: ${err.message}`);
-    logger.error(err.stack);
-
-    return res.json({
-      success: false,
-      message: `Error occured during queryUserByWallet: ${err.message}`
-    });
-  }
-};
-
-export { saveUser, queryUser, queryUserByTag, queryUserByWallet };
+export { saveUser, queryUser, queryUserByTag };
